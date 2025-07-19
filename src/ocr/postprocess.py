@@ -1,6 +1,103 @@
 import re
 import pandas as pd
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+
+class TextStructureAnalyzer:
+    def __init__(self, config: Optional[Dict] = None):
+        """
+        Inicializa el analizador de estructura de texto.
+        
+        Args:
+            config: Diccionario con configuración personalizada para la detección
+        """
+        self.config = config or {
+            'min_title_length': 3,
+            'max_title_length': 100,
+            'title_markers': ['capítulo', 'sección', 'parte'],
+            'min_size_ratio': 1.2  # Ratio mínimo de tamaño para considerar un título
+        }
+    
+    def detect_title(self, text_block: Dict[str, Any]) -> bool:
+        """
+        Detecta si un bloque de texto es un título basado en sus características.
+        
+        Args:
+            text_block: Diccionario con información del bloque de texto incluyendo
+                       tamaño, posición, formato, etc.
+        
+        Returns:
+            bool: True si es un título, False en caso contrario
+        """
+        # Verificar longitud del texto
+        text = text_block.get('text', '')
+        if not (self.config['min_title_length'] <= len(text) <= self.config['max_title_length']):
+            return False
+            
+        # Verificar características de formato
+        is_bold = text_block.get('is_bold', False)
+        is_centered = text_block.get('is_centered', False)
+        font_size = text_block.get('font_size', 0)
+        base_font_size = text_block.get('base_font_size', font_size)
+        
+        # Calcular score basado en características
+        score = 0
+        if is_bold:
+            score += 2
+        if is_centered:
+            score += 1
+        if font_size / base_font_size >= self.config['min_size_ratio']:
+            score += 2
+            
+        # Verificar palabras clave de título
+        lower_text = text.lower()
+        if any(marker in lower_text for marker in self.config['title_markers']):
+            score += 1
+            
+        return score >= 3
+    
+    def get_hierarchy_level(self, text_block: Dict[str, Any]) -> int:
+        """
+        Determina el nivel jerárquico del título (1 para título principal, 2 para subtítulo, etc.)
+        
+        Args:
+            text_block: Diccionario con información del bloque de texto
+            
+        Returns:
+            int: Nivel jerárquico del título
+        """
+        font_size = text_block.get('font_size', 0)
+        base_font_size = text_block.get('base_font_size', font_size)
+        
+        if font_size / base_font_size >= 1.5:
+            return 1
+        elif font_size / base_font_size >= 1.2:
+            return 2
+        return 3
+
+def process_document_structure(text_blocks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Procesa la estructura del documento detectando títulos y su jerarquía.
+    
+    Args:
+        text_blocks: Lista de bloques de texto con sus características
+        
+    Returns:
+        Lista de bloques de texto con información de estructura añadida
+    """
+    analyzer = TextStructureAnalyzer()
+    structured_blocks = []
+    
+    for block in text_blocks:
+        if analyzer.detect_title(block):
+            block['is_title'] = True
+            block['hierarchy_level'] = analyzer.get_hierarchy_level(block)
+        else:
+            block['is_title'] = False
+            block['hierarchy_level'] = 0
+        
+        structured_blocks.append(block)
+    
+    return structured_blocks
 
 def clean_text(text: str) -> str:
     """
