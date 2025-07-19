@@ -9,6 +9,8 @@ RUN apt-get update && apt-get install -y \
     libxext6 \
     libxrender-dev \
     libgl1-mesa-glx \
+    poppler-utils \
+    libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar los archivos de requerimientos
@@ -23,4 +25,4 @@ COPY input_pdfs/ ./input_pdfs/
 COPY output/ ./output/
 
 # Comando por defecto
-CMD ["python", "src/main.py"]
+CMD ["tail", "-f", "/dev/null"]
