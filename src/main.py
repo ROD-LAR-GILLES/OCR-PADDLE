@@ -1,8 +1,21 @@
 import os
 import argparse
 from pathlib import Path
-from ocr.processor import process_document
+from ocr.processor import process_document, process_table
 from utils.pdf_to_images import convert_pdf_to_images
+import pandas as pd
+
+def save_table_as_markdown(tables, output_path):
+    """Guarda las tablas detectadas en formato Markdown."""
+    md_content = "# Tablas Detectadas en el Documento\n\n"
+    
+    for idx, table in enumerate(tables, 1):
+        md_content += f"## Tabla {idx}\n\n"
+        md_content += table.to_markdown(index=False)
+        md_content += "\n\n---\n\n"
+    
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write(md_content)
 
 def save_as_markdown(text, output_path):
     """Guarda el texto en formato Markdown."""
@@ -30,8 +43,15 @@ def process_single_file(pdf_path: str, output_dir: str):
         # Convertir PDF a imágenes
         images = convert_pdf_to_images(pdf_path)
         
-        # Procesar cada imagen con OCR
+        # Procesar cada imagen con OCR para texto
         results = process_document(images)
+        
+        # Procesar cada imagen para detectar tablas
+        tables = []
+        for image in images:
+            table_result = process_table(image)
+            if table_result:
+                tables.extend(table_result)
         
         # Guardar resultados
         filename = os.path.basename(pdf_path)
@@ -41,6 +61,11 @@ def process_single_file(pdf_path: str, output_dir: str):
         txt_path = os.path.join(output_dir, f"{base_name}_ocr.txt")
         with open(txt_path, 'w', encoding='utf-8') as f:
             f.write('\n'.join(results))
+            
+        # Guardar tablas detectadas
+        if tables:
+            tables_path = os.path.join(output_dir, f"{base_name}_tables.md")
+            save_table_as_markdown(tables, tables_path)
             
         # Guardar como Markdown
         md_path = os.path.join(output_dir, f"{base_name}_ocr.md")
