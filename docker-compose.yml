@@ -1,0 +1,10 @@
+version: '3'
+services:
+  ocr-paddle:
+    build: .
+    volumes:
+      - ./input_pdfs:/app/input_pdfs
+      - ./output:/app/output
+      - ./src:/app/src
+    environment:
+      - PYTHONUNBUFFERED=1
