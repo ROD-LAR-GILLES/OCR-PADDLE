@@ -1,8 +1,9 @@
-version: '3'
 services:
   ocr-pymupdf:
     container_name: ocr-pymupdf
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     volumes:
       - ./input_pdfs:/app/input_pdfs
       - ./output:/app/output
